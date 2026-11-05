@@ -1,0 +1,58 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Chaquopy compila el código Python con la misma versión que va dentro de la app
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pruebas del backend (Python)
+        run: |
+          pip install reportlab==4.2.5
+          python pruebas_python/prueba_backend.py
+
+      - name: Pruebas de Flutter
+        run: |
+          flutter pub get
+          flutter test
+
+      - name: Compilar APK
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk dosimetro.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dosimetro-apk
+          path: dosimetro.apk
+
+      - name: Publicar en Releases (solo con etiqueta v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dosimetro.apk
