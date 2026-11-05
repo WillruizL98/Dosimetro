@@ -76,4 +76,13 @@ etiqueta `v*`.
 - Sin calibrar se usa la referencia del CDD de Android (90 dB SPL → −22,35 dBFS).
 - El modo audífonos estima el nivel con la salida digital (Visualizer) y la calibración
   del audífono; algunos fabricantes no permiten leer esa salida.
-- iPhone: pendiente (necesita la captura en Swift y Python embebido para iOS).
+- iPhone: el modo audífonos lee la *Exposición a audio de los audífonos* de la app Salud;
+  el micrófono necesita calibración (no hay una referencia oficial como en Android).
+
+## iPhone
+
+GitHub Actions (macOS) compila un `dosimetro.ipa` sin firmar: Swift lee el micrófono en modo
+*measurement* (`ios/Runner/Medicion.swift`) y Python corre con el `Python.xcframework` de BeeWare
+(`ios/Runner/PuentePython.m`; `ios/configurar_python.rb` lo agrega al proyecto de Xcode).
+Se instala desde Windows con [Sideloadly](https://sideloadly.io) y un Apple ID; con cuenta gratis hay
+que reinstalarla cada 7 días.

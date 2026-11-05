@@ -12,5 +12,9 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    // Canales propios: micrófono, Python y archivos (los mismos que en Android)
+    if let registrador = engineBridge.pluginRegistry.registrar(forPlugin: "Dosimetro") {
+      Canales.registrar(registrador.messenger())
+    }
   }
 }

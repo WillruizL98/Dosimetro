@@ -7,6 +7,11 @@ import 'plataforma.dart';
 /// den un RMS de 2500 sobre 32768 (−22,35 dBFS), así que dB SPL ≈ dBFS + 112,35.
 const offsetMicrofonoAndroid = 112.35;
 
+/// En iPhone no hay una referencia oficial; 120 dB es un punto de partida (calibrar siempre).
+const offsetMicrofonoIPhone = 120.0;
+
+double get offsetSinCalibrar => Platform.isIOS ? offsetMicrofonoIPhone : offsetMicrofonoAndroid;
+
 /// Guarda todo como archivos JSON en la memoria interna de la app.
 class Almacen {
   static Future<Directory> _carpeta(String nombre) async {
@@ -98,12 +103,16 @@ class Almacen {
     for (final c in await calibraciones(tipo)) {
       if (c['id'] == id) return c;
     }
+    // En iPhone el nivel de los audífonos lo calcula el sistema y se lee de Salud.
+    if (tipo == 'audifono' && Platform.isIOS) {
+      return {'id': 'salud', 'tipo': tipo, 'nombre': 'App Salud del iPhone', 'offset': 0.0, 'calibrado': true};
+    }
     return tipo == 'microfono'
         ? {
             'id': 'defecto',
             'tipo': tipo,
-            'nombre': 'Sin calibrar (referencia Android)',
-            'offset': offsetMicrofonoAndroid,
+            'nombre': Platform.isIOS ? 'Sin calibrar (aproximado)' : 'Sin calibrar (referencia Android)',
+            'offset': offsetSinCalibrar,
             'calibrado': false,
           }
         : {

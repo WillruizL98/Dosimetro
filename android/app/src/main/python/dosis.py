@@ -323,7 +323,7 @@ def resumen_audifonos(s, datos):
         "fin_t": s.t[-1] if s.t else None,
         "duracion_texto": _hhmm(len(s.la) / 3600),
         "perfil": ref,
-        "equipo": {k: s.cabecera.get(k) for k in ("dispositivo", "offset", "sigue_volumen")},
+        "equipo": {k: s.cabecera.get(k) for k in ("dispositivo", "fuente", "offset", "sigue_volumen")},
     }
 
 

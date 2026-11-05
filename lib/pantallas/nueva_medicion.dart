@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../modos.dart';
@@ -248,6 +250,9 @@ class _EstadoNueva extends State<PantallaNuevaMedicion> {
             Text(
               modo.usaMicrofono
                   ? 'Pon el celular cerca del oído de la persona (bolsillo de la camisa o en el hombro), con el micrófono destapado.'
+                  : Platform.isIOS
+                  ? 'Escucha música como siempre. El iPhone mide el nivel de los audífonos y la app lo lee de Salud '
+                        '(llega con unos minutos de retraso). Revisa Ajustes > Sonido > Seguridad de audífonos.'
                   : 'Escucha música como siempre. La app mide en segundo plano mientras suene algo por los audífonos.',
               style: tema.textTheme.bodySmall,
             ),

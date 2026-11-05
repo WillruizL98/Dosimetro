@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dosimetro</string>
+	<string>Dosímetro</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,7 +24,20 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>El dosímetro usa el micrófono para medir el nivel de ruido. El audio no se graba ni se envía.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>El modo audífonos lee la exposición a audio de los audífonos que el iPhone guarda en Salud.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>El dosímetro no escribe datos en Salud.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

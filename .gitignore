@@ -50,3 +50,9 @@ app.*.map.json
 # Salidas de las pruebas del backend
 pruebas_python/salida/
 __pycache__/
+
+# Se generan en GitHub Actions al compilar para iPhone
+ios/Python.xcframework/
+ios/app/
+ios/app_packages/
+ios/utils_python.sh

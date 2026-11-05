@@ -308,6 +308,10 @@ def _cuerpo_audifonos(e, r, datos, seccion, normal):
                         "ahora": r.get("fin_t")})
     e.append(Paragraph(f"Últimos 7 días: {_t(sem['dosis'], ' %')} de la dosis semanal", seccion))
     e.append(grafica_barras([d["letra"] for d in sem["dias"]], [d["dosis"] for d in sem["dias"]], "%"))
-    e.append(Paragraph(
-        "El nivel se estima: RMS digital de la salida de audio más la calibración del audífono medida con "
-        "sonómetro. Solo cuenta el tiempo en que sonó algo por los audífonos.", normal))
+    if r.get("equipo", {}).get("fuente") == "Salud (iPhone)":
+        explicacion = ("El nivel lo calcula el iPhone para cada audífono y lo guarda en la app Salud; la app lee "
+                       "esas muestras (llegan con unos minutos de retraso).")
+    else:
+        explicacion = ("El nivel se estima: RMS digital de la salida de audio más la calibración del audífono medida "
+                       "con sonómetro. Solo cuenta el tiempo en que sonó algo por los audífonos.")
+    e.append(Paragraph(explicacion, normal))

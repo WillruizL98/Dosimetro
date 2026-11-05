@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../modos.dart';
@@ -69,6 +71,25 @@ class _EstadoLista extends State<_ListaPerfiles> {
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final mic = widget.tipo == 'microfono';
+    if (!mic && Platform.isIOS) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.favorite, color: Colors.red),
+              title: const Text('En iPhone no hace falta calibrar los audífonos'),
+              subtitle: Text(
+                'El iPhone calcula el nivel que llega a tus oídos según el modelo de audífono y lo guarda en '
+                'la app Salud (Exposición a audio de los audífonos). El modo audífonos lee esos datos. '
+                'Es más preciso con AirPods o Beats; con otros audífonos el iPhone hace un estimado.',
+                style: tema.textTheme.bodyMedium,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -88,7 +109,9 @@ class _EstadoLista extends State<_ListaPerfiles> {
               title: const Text('Sin calibrar'),
               subtitle: Text(
                 mic
-                    ? 'Se usa la referencia de Android: offset ${num1(offsetMicrofonoAndroid, ' dB')} (aprox. ±5 dB).'
+                    ? Platform.isIOS
+                          ? 'Se usa un offset aproximado de ${num1(offsetSinCalibrar, ' dB')}: calibra antes de medir.'
+                          : 'Se usa la referencia de Android: offset ${num1(offsetSinCalibrar, ' dB')} (aprox. ±5 dB).'
                     : 'Se usa un valor aproximado; el modo audífonos no será confiable.',
               ),
             ),

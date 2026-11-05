@@ -1,0 +1,77 @@
+name: iPhone
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_APPLE_SUPPORT: "3.13-b17"
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Python para iOS (BeeWare Python-Apple-support)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd ios
+          gh release download "$PYTHON_APPLE_SUPPORT" -R beeware/Python-Apple-support \
+            -p "Python-3.13-iOS-support.*.tar.gz" -O python-ios.tar.gz
+          tar -xzf python-ios.tar.gz Python.xcframework
+          rm python-ios.tar.gz
+          # Sin firma en la nube: Sideloadly firma después todos los frameworks.
+          sed 's|^    /usr/bin/codesign|    [ -z "$EXPANDED_CODE_SIGN_IDENTITY" ] \|\| /usr/bin/codesign|' \
+            Python.xcframework/build/utils.sh > utils_python.sh
+
+      - name: Código Python y paquetes para iPhone
+        run: |
+          mkdir -p ios/app
+          cp android/app/src/main/python/*.py ios/app/
+          pip install --target ios/app_packages --no-deps --only-binary=:all: \
+            --platform ios_13_0_arm64_iphoneos --python-version 3.13 \
+            reportlab==4.2.5 chardet==5.2.0 pillow==11.3.0
+
+      - name: Configurar Xcode
+        run: |
+          gem list -i xcodeproj || gem install xcodeproj --no-document
+          ruby ios/configurar_python.rb
+
+      - name: Compilar (sin firma)
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign
+
+      - name: Empaquetar .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry dosimetro.ipa Payload
+          ls -lh dosimetro.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dosimetro-ipa
+          path: dosimetro.ipa
+
+      - name: Publicar en Releases (solo con etiqueta v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dosimetro.ipa
