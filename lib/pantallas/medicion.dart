@@ -70,7 +70,7 @@ class _EstadoMedicion extends State<PantallaMedicion> {
   void _alRecibir(Map<dynamic, dynamic> d) {
     if (!mounted) return;
     setState(() {
-      if (d.containsKey('error')) _error = d['error'] as String;
+      if (d.containsKey('error')) _error = d['error'] as String?;
       if (d.containsKey('laf')) _laf = (d['laf'] as num?)?.toDouble();
       if (d.containsKey('audifono')) _audifono = d['audifono'] as String?;
       if (d['segundos'] != null) _segundos = d['segundos'] as int;

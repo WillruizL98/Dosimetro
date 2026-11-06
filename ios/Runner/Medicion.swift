@@ -60,6 +60,13 @@ final class Medicion {
         }
     }
 
+    func limpiarError() {
+        DispatchQueue.main.async {
+            self.error = nil
+            self.oyente?(["error": NSNull()])
+        }
+    }
+
     func emitir(_ datos: [String: Any]) {
         DispatchQueue.main.async { self.oyente?(datos) }
     }
@@ -122,32 +129,91 @@ final class MotorMicrofono: Motor {
     private var n = 0, enBloque = 0, bloques = 0, descartar = 4
     private var tamBloque = 6000
 
+    private var observadores: [NSObjectProtocol] = []
+    private var terminado = false
+
     override func iniciar() {
+        abrir([
+            "tipo": "cabecera", "modo": cfg["modo"] as? String ?? "jornada",
+            "inicio": Date().timeIntervalSince1970, "offset": offset,
+            "fuente": "AVAudioSession measurement", "dispositivo": modeloIPhone(),
+            "bandas": Filtros.centrosOctava,
+        ])
+        observar()
+        if let error = arrancarMicrofono() {
+            Medicion.compartida.fallo("No se pudo abrir el micrófono: \(error)")
+        }
+    }
+
+    /// Abre la sesión de audio y el micrófono. Se llama al empezar y cada vez que iOS lo corta.
+    /// Devuelve el error, o nil si quedó midiendo.
+    private func arrancarMicrofono() -> String? {
         do {
             let sesion = AVAudioSession.sharedInstance()
-            try sesion.setCategory(.record, mode: .measurement)
+            // mixWithOthers: se puede poner música en otra app sin que se corte la medición
+            try sesion.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .allowBluetoothA2DP])
             try? sesion.setPreferredSampleRate(48000)
             try sesion.setActive(true)
             let entrada = motor.inputNode
+            entrada.removeTap(onBus: 0)
             let formato = entrada.outputFormat(forBus: 0)
-            fs = formato.sampleRate
-            filtroA = Filtros.ponderacionA(fs)
-            filtroC = Filtros.ponderacionC(fs)
-            bandas = Filtros.bandasOctava(fs)
-            alfa = 1 - exp(-1 / (0.125 * fs))
-            tamBloque = Int(fs / 8)
-            abrir([
-                "tipo": "cabecera", "modo": cfg["modo"] as? String ?? "jornada",
-                "inicio": Date().timeIntervalSince1970, "offset": offset, "fs": fs,
-                "fuente": "AVAudioSession measurement", "dispositivo": modeloIPhone(),
-                "bandas": Filtros.centrosOctava,
-            ])
+            guard formato.sampleRate > 0 else { return "el micrófono no está disponible" }
+            if formato.sampleRate != fs || alfa == 0 {
+                fs = formato.sampleRate
+                filtroA = Filtros.ponderacionA(fs)
+                filtroC = Filtros.ponderacionC(fs)
+                bandas = Filtros.bandasOctava(fs)
+                alfa = 1 - exp(-1 / (0.125 * fs))
+                tamBloque = Int(fs / 8)
+            }
+            // el filtro se vuelve a asentar después de cada corte
+            enBloque = 0
+            descartar = 4
+            reiniciarSegundo()
             entrada.installTap(onBus: 0, bufferSize: 4096, format: formato) { [weak self] buffer, _ in
                 self?.procesar(buffer)
             }
+            motor.prepare()
             try motor.start()
+            return nil
         } catch {
-            Medicion.compartida.fallo("No se pudo abrir el micrófono: \(error.localizedDescription)")
+            return error.localizedDescription
+        }
+    }
+
+    /// Llamadas, Siri, alarmas o cambio de audífonos detienen el micrófono: se reanuda solo.
+    private func observar() {
+        let centro = NotificationCenter.default
+        let sesion = AVAudioSession.sharedInstance()
+        observadores.append(centro.addObserver(forName: AVAudioSession.interruptionNotification, object: sesion,
+                                               queue: .main) { [weak self] aviso in
+            guard let self, !self.terminado,
+                  let valor = aviso.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let tipo = AVAudioSession.InterruptionType(rawValue: valor) else { return }
+            if tipo == .began {
+                self.marca("Interrupción (llamada u otra app)")
+                Medicion.compartida.emitir(["laf": NSNull(), "segundos": self.segundos])
+            } else {
+                self.reanudar()
+            }
+        })
+        for nombre in [Notification.Name.AVAudioEngineConfigurationChange, AVAudioSession.mediaServicesWereResetNotification,
+                       UIApplication.didBecomeActiveNotification] {
+            observadores.append(centro.addObserver(forName: nombre, object: nil, queue: .main) { [weak self] _ in
+                guard let self, !self.terminado, !self.motor.isRunning else { return }
+                self.reanudar()
+            })
+        }
+    }
+
+    private func reanudar() {
+        if motor.isRunning { return }
+        if let error = arrancarMicrofono() {
+            Medicion.compartida.fallo("La medición quedó en pausa por una llamada u otra app (\(error)). "
+                + "Abre la app para que siga.")
+        } else {
+            marca("Medición reanudada")
+            Medicion.compartida.limpiarError()
         }
     }
 
@@ -208,6 +274,9 @@ final class MotorMicrofono: Motor {
     }
 
     override func terminar() {
+        terminado = true
+        observadores.forEach { NotificationCenter.default.removeObserver($0) }
+        observadores = []
         motor.inputNode.removeTap(onBus: 0)
         motor.stop()
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)

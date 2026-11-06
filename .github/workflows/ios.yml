@@ -46,7 +46,9 @@ jobs:
           cp android/app/src/main/python/*.py ios/app/
           pip install --target ios/app_packages --no-deps --only-binary=:all: \
             --platform ios_13_0_arm64_iphoneos --python-version 3.13 \
-            reportlab==4.2.5 chardet==5.2.0 pillow==11.3.0
+            reportlab==4.2.5 chardet==5.2.0
+          # La rueda de Pillow para iOS no trae libjpeg/libpng: reportlab solo necesita poder importarlo
+          cp -R ios/pil_sustituto/PIL ios/app_packages/
 
       - name: Configurar Xcode
         run: |
