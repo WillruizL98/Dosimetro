@@ -191,7 +191,12 @@ def generar_pdf(datos):
         ("Offset", _t(eq.get("offset"), " dB") if eq.get("offset") is not None else "—"),
     ]))
 
-    if modo == "audifonos":
+    if not r.get("segundos"):
+        e.append(Paragraph("Resultados", seccion))
+        e.append(Paragraph(
+            "Esta medición no registró ningún segundo de datos: se detuvo antes de completar el primer segundo "
+            "o el micrófono no entregó audio. No hay niveles ni dosis que evaluar; repita la medición.", normal))
+    elif modo == "audifonos":
         _cuerpo_audifonos(e, r, datos, seccion, normal)
     else:
         _cuerpo_microfono(e, r, sesion, modo, seccion, normal)
