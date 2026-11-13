@@ -53,14 +53,22 @@ class Almacen {
     return '${a.year}${d(a.month)}${d(a.day)}-${d(a.hour)}${d(a.minute)}${d(a.second)}';
   }
 
-  // Mediciones: metadatos en JSON y datos por segundo en .jsonl
-  static Future<List<Map<String, dynamic>>> mediciones() => _leerTodos('mediciones');
+  // Mediciones: metadatos en JSON y datos por segundo en .jsonl.
+  // En iPhone la carpeta de la app cambia de nombre cada vez que se reinstala o se vuelve a firmar
+  // (Sideloadly), así que la ruta guardada queda vieja: se reconstruye siempre con la carpeta actual.
+  static Future<Map<String, dynamic>> _rutaActual(Map<String, dynamic> m) async {
+    if (m['id'] is String) m['ruta_datos'] = await rutaDatos(m['id'] as String);
+    return m;
+  }
+
+  static Future<List<Map<String, dynamic>>> mediciones() async =>
+      [for (final m in await _leerTodos('mediciones')) await _rutaActual(m)];
   static Future<void> guardarMedicion(Map<String, dynamic> m) => _guardar('mediciones', m);
 
   static Future<Map<String, dynamic>?> medicion(String id) async {
     final archivo = File('${(await _carpeta('mediciones')).path}/$id.json');
     if (!await archivo.exists()) return null;
-    return jsonDecode(await archivo.readAsString()) as Map<String, dynamic>;
+    return _rutaActual(jsonDecode(await archivo.readAsString()) as Map<String, dynamic>);
   }
 
   static Future<void> borrarMedicion(Map<String, dynamic> m) async {
